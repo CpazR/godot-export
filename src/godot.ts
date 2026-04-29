@@ -342,7 +342,9 @@ async function doExport(): Promise<BuildResult[]> {
  */
 function findGodotExecutablePath(basePath: string): string | undefined {
   core.info(`🔍 Looking for Godot executable in ${basePath}`);
+  core.info(`Test logging?`);
   const paths = fs.readdirSync(basePath);
+  core.info(`Paths - ${paths}`);
   const dirs: string[] = [];
 
   for (const subPath of paths) {
