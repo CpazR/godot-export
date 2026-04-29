@@ -346,6 +346,7 @@ function findGodotExecutablePath(basePath: string): string | undefined {
   const dirs: string[] = [];
 
   for (const subPath of paths) {
+    core.info(`   Reading in subpath ${subPath}`);
     const fullPath = path.join(basePath, subPath);
     const stats = fs.statSync(fullPath);
     const isLinux = stats.isFile() && (path.extname(fullPath) === '.64' || path.extname(fullPath) === '.x86_64'
