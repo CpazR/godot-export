@@ -348,7 +348,7 @@ function findGodotExecutablePath(basePath: string): string | undefined {
   const ignorePaths = ['GodotSharp'];
 
   for (const subPath of paths) {
-    if (!ignorePaths.includes(subPath)) {
+    if (ignorePaths.includes(subPath)) {
       core.info(`Ignoring ${subPath}`);
       continue;
     }
