@@ -342,38 +342,64 @@ async function doExport(): Promise<BuildResult[]> {
  */
 function findGodotExecutablePath(basePath: string): string | undefined {
   core.info(`🔍 Looking for Godot executable in ${basePath}`);
+
+  // TODO: This is a stop-gap hack. Should not be committed.
+  // Don't descend too deep to avoid the GodotSharp rabbit hole
+  const depth = basePath.split(path.sep).length;
+  const maxDepth = basePath.split(path.sep).length + 3; // Limit recursion depth
+
+  if (depth > maxDepth) {
+    return undefined;
+  }
+
   const paths = fs.readdirSync(basePath);
   const dirs: string[] = [];
-  // Paths to explicitly ignore. These are directories we know will not contain the godot binary
-  const ignorePaths = ['GodotSharp'];
+  const ignorePaths = ['GodotSharp', 'Api', 'Debug', '.DS_Store', 'node_modules'];
 
   for (const subPath of paths) {
-    if (ignorePaths.includes(subPath)) {
-      core.info(`Ignoring ${subPath}`);
+    // Skip ignored directories and hidden files
+    if (ignorePaths.includes(subPath) || subPath.startsWith('.')) {
       continue;
     }
 
     const fullPath = path.join(basePath, subPath);
     const stats = fs.statSync(fullPath);
-    const isLinux = stats.isFile() && (path.extname(fullPath) === '.64' || path.extname(fullPath) === '.x86_64'
-                      || path.extname(fullPath) === '.arm32' ||path.extname(fullPath) === '.arm64');
-    const isMac = process.platform === 'darwin' && stats.isDirectory() && path.extname(fullPath) === '.app';
 
-    if (isLinux) {
-      return fullPath;
-    } else if (isMac) {
-      // on a Mac, we need to target the executable inside the .app directory. MacOS abstractions are weird
-      return path.join(fullPath, 'Contents', 'MacOS', 'Godot');
-    } else {
+    // Check for executable files (proper way on Unix-like systems)
+    if (stats.isFile()) {
+      // Check if file is executable (Unix file mode check)
+      const isExecutable = (stats.mode & 0o111) !== 0;
+
+      // Match common Godot executable names and extensions
+      const isGodotExecutable =
+        isExecutable &&
+        (subPath.toLowerCase().includes('godot') ||
+          path.extname(fullPath) === '.64' ||
+          path.extname(fullPath) === '.x86_64' ||
+          path.extname(fullPath) === '.arm32' ||
+          path.extname(fullPath) === '.arm64');
+
+      if (isGodotExecutable) {
+        core.info(`✅ Found executable: ${fullPath}`);
+        return fullPath;
+      }
+    } else if (stats.isDirectory()) {
+      // Only recurse into directories
       dirs.push(fullPath);
     }
   }
 
+  // Recurse into subdirectories
   for (const dir of dirs) {
-    return findGodotExecutablePath(dir);
+    const result = findGodotExecutablePath(dir);
+    if (result) {
+      return result;
+    }
   }
+
   return undefined;
 }
+
 
 function getExportPresets(): ExportPreset[] {
   const exportPresets: ExportPreset[] = [];
