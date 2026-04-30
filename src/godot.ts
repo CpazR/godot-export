@@ -342,20 +342,23 @@ async function doExport(): Promise<BuildResult[]> {
  */
 function findGodotExecutablePath(basePath: string): string | undefined {
   core.info(`🔍 Looking for Godot executable in ${basePath}`);
-  core.info(`Test logging?`);
   const paths = fs.readdirSync(basePath);
-  core.info(`Paths - ${paths}`);
   const dirs: string[] = [];
+  // Paths to explicitly ignore. These are directories we know will not contain the godot binary
+  const ignorePaths = ['GodotSharp'];
 
   for (const subPath of paths) {
-    core.info(`Reading in subpath ${subPath}`);
+    if (!ignorePaths.includes(subPath)) {
+      core.info(`Ignoring ${subPath}`);
+      continue;
+    }
+
     const fullPath = path.join(basePath, subPath);
     const stats = fs.statSync(fullPath);
     const isLinux = stats.isFile() && (path.extname(fullPath) === '.64' || path.extname(fullPath) === '.x86_64'
                       || path.extname(fullPath) === '.arm32' ||path.extname(fullPath) === '.arm64');
     const isMac = process.platform === 'darwin' && stats.isDirectory() && path.extname(fullPath) === '.app';
 
-    core.info(`Subpath is a linux binary ${isLinux}`)
     if (isLinux) {
       return fullPath;
     } else if (isMac) {
